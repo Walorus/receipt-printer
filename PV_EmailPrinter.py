@@ -11,7 +11,6 @@ from oauth2client import client
 from oauth2client import tools
 from apiclient import errors
 
-
 try:
 	import argparse
 	flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
@@ -22,16 +21,8 @@ SCOPES = 'https://www.googleapis.com/auth/gmail.modify'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'ReceiptApp'
 
-
+"""Gets and checks the credentials. DON'T FUCK WITH"""
 def get_credentials():
-    """Gets valid user credentials from storage. DONT FUCK WITH.
-
-    If nothing has been stored, or if the stored credentials are invalid,
-    the OAuth2 flow is completed to obtain the new credentials.
-
-    Returns:
-        Credentials, the obtained credential.
-    """
     home_dir = os.path.expanduser('~')
     credential_dir = os.path.join(home_dir, '.credentials')
     if not os.path.exists(credential_dir):
@@ -51,9 +42,7 @@ def get_credentials():
         print('Storing credentials to ' + credential_path)
     return credentials
 
-"""Get a list of Messages unread messages from mailbox from certain sender
-"""
-
+"""Get a list of Messages unread messages from mailbox from certain sender"""
 def ListMessagesMatchingQuery(service, user_id, query):
 	try:
 		response = service.users().messages().list(userId=user_id,labelIds = 'UNREAD',q=query).execute() #Finds first result from query that is unread
@@ -79,6 +68,7 @@ def isCorrectSubject(service,user_id,restaurant_id,message):
 		return True
 	else:
 		print('Looking for subject \''+restaurant_id+'\'. Found \''+subject+'\'.')
+		print()
 		return False
 
 """Prints out the messages and sets marks it as read"""
@@ -86,7 +76,6 @@ def PrintMessage(service,user_id,message):
 	foundMsg = service.users().messages().get(userId=user_id, id=message['id']).execute()
 	parts = foundMsg['payload']['parts']
 	data = 'ERROR: UNABLE TO FIND DATA'
-
 	for part in parts: #looks for the text/plain data key in the headers array and sets the data value
 		if part['mimeType']=='text/plain':
 			data = base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')) #decodes the data from an encoded format to plain text
@@ -109,11 +98,9 @@ def main():
 			for message in messages:
 				if isCorrectSubject(service,user_id,restaurant_id,message): #Makes sure the subject location matches the restaurant_id
 					PrintMessage(service,user_id,message) #the print message function, printer API will be called in here with the subject and data recieved
-		print('All emails for ' + restaurant_id+ ' have been checked '+emailToCheckFrom)
+		print('All emails have been checked '+emailToCheckFrom)
 		print()
 		time.sleep(sleepTime) #sleeps for certain amount of seconds in between checking
     
-
-
 if __name__ == '__main__':
 	main()
