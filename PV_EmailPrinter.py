@@ -56,53 +56,62 @@ def get_credentials():
 
 def ListMessagesMatchingQuery(service, user_id, query):
 	try:
-		response = service.users().messages().list(userId=user_id,labelIds = 'UNREAD',q=query,maxResults=1).execute() #Finds first result from query that is unread
+		response = service.users().messages().list(userId=user_id,labelIds = 'UNREAD',q=query).execute() #Finds first result from query that is unread
 		if response['resultSizeEstimate']!=0: #Makes sure there are some emails that are unread from query, if not it returns -1
 			messages = response['messages']
-			return messages[0]
+			return messages
 		else:
 			return -1
 	except errors.HttpError, error:
 		print('An error occurred: %s' % error)
 
-"""Prints out the messages and sets marks it as read"""
-
-def PrintMessages(service,user_id,message,restaurant_id):
+"""Checks f the message subject matches the restaurant ID"""
+def isCorrectSubject(service,user_id,restaurant_id,message):
 	foundMsg = service.users().messages().get(userId=user_id, id=message['id']).execute()
 	headers = foundMsg['payload']['headers']
-	parts = foundMsg['payload']['parts']
 	subject = 'ERROR: UNABLE TO FIND SUBJECT'
-	data = 'ERROR: UNABLE TO FIND DATA'
 
 	for header in headers: #looks for the subject key in the headers array and sets the subject value
 		if header['name']=='Subject':
 			subject = header['value']
+	if subject == restaurant_id:
+		print('Email Subject: '+subject)
+		return True
+	else:
+		print('Looking for subject \''+restaurant_id+'\'. Found \''+subject+'\'.')
+		return False
+
+"""Prints out the messages and sets marks it as read"""
+def PrintMessage(service,user_id,message):
+	foundMsg = service.users().messages().get(userId=user_id, id=message['id']).execute()
+	parts = foundMsg['payload']['parts']
+	data = 'ERROR: UNABLE TO FIND DATA'
+
 	for part in parts: #looks for the text/plain data key in the headers array and sets the data value
 		if part['mimeType']=='text/plain':
 			data = base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')) #decodes the data from an encoded format to plain text
-	service.users().messages().modify(userId = user_id,id=message['id'],body={'removeLabelIds': ['UNREAD'], 'addLabelIds': []}).execute() #This marks email as read
 
-	if restaurant_id==subject:
-		print('Email Subject: '+subject)
-		print('Email Data: '+data)
+	service.users().messages().modify(userId = user_id,id=message['id'],body={'removeLabelIds': ['UNREAD'], 'addLabelIds': []}).execute() #This marks email as read
+	print('Email Data: '+data)
 
 def main():
-	restaurant_id = 'Test 1' #Used to compare to subject line, subject line should have the specific restaurant_id
+	sleepTime = 15 #CHANGE ME FOR HOW LONG TO WAIT INBETWEEN CHECKING EMAILS
+	restaurant_id = 'Test 2' #CHANGE ME TO SPECIFIC RESTAURANT ID SO IT WILL MATCH SUBJECT
 	emailToCheckFrom = 'from:aaronolkin@gmail.com' #CHANGE ME TO SENDER EMAIL
 	user_id = 'me'
+
 	credentials = get_credentials()
 	http = credentials.authorize(httplib2.Http())
 	service = discovery.build('gmail', 'v1', http=http)
 	while True:
-		keepChecking = True
-		while keepChecking:
-			message = ListMessagesMatchingQuery(service,user_id,emailToCheckFrom) #Finds all emails from the email above that are also unread
-			if message !=-1: 
-				PrintMessages(service,user_id,message,restaurant_id) #the print message function, printer API will be called in here with the subject and data recieved
-			else: #if -1 IS returned means there are no unread left to check, so it sleeps until function is called again
-				print("No unread emails "+emailToCheckFrom) 
-				keepChecking = False #If there are no more unread emails from the sender than it stops checking.
-		time.sleep(15)
+		messages = ListMessagesMatchingQuery(service,user_id,emailToCheckFrom) #Finds all emails from the email above that are also unread, returns as -1 if there are no unread messages from sender
+		if messages !=-1:
+			for message in messages:
+				if isCorrectSubject(service,user_id,restaurant_id,message): #Makes sure the subject location matches the restaurant_id
+					PrintMessage(service,user_id,message) #the print message function, printer API will be called in here with the subject and data recieved
+		print('All emails for ' + restaurant_id+ ' have been checked '+emailToCheckFrom)
+		print()
+		time.sleep(sleepTime) #sleeps for certain amount of seconds in between checking
     
 
 
