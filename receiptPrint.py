@@ -27,15 +27,12 @@ def main(orderDictionary):
 		printer.setSize("M")
 		printer.justify("L")
 		finalLine=item['name']
-		if len(finalLine) < lineLength:
-			printer.printNoLine(finalLine)
-		else:
-			words = finalLine.split()
-			for i in range(0,len(words)):
-				if len(words[i])>24:
-					words[i]=words[i][:24]
-			finalLine = breakIntoNewLine(' '.join(words),printer)
-			printer.printNoLine(finalLine)
+		words = finalLine.split()
+		for i in range(0,len(words)):
+			if len(words[i])>24:
+				words[i]=words[i][:24]
+		finalLine = breakIntoLines(' '.join(words),printer)
+		printer.printNoLine(finalLine)
 		for i in range(0,lineLength-len(finalLine)):
                                 printer.printNoLine(".")
 		printer.printNoLine(" $")
@@ -43,12 +40,30 @@ def main(orderDictionary):
 		printer.setSize("S")
 		printer.setLineHeightSmall()
 		for addon in item['addons']:
-                        printer.printNoLine(addon['name'])
-			for i in range(0,lineLength-len(addon['name'])):
+			words2 = addon['name'].split()
+			for i in range(0,len(words2)):
+                       		if len(words2[i])>24:
+                                	words2[i]=words2[i][:24]
+			finalAddonLine = breakIntoLines(' '.join(words2),printer)
+                        printer.printNoLine(finalAddonLine)
+			for i in range(0,lineLength-len(finalAddonLine)):
                        		printer.printNoLine(".")
 			printer.printNoLine(" $")
 			printer.println('{0:.2f}'.format(addon['price']))
-		printer.println("("+item['comments']+")")
+			printer.println()
+		
+		if item['comments']:
+			printer.printNoLine("(")
+			words3 = item['comments'].split()
+                        for i in range(0,len(words3)):
+                                if len(words3[i])>24:
+                                        words3[i]=words3[i][:24]
+                        finalCommentLine = breakIntoLines(' '.join(words3),printer)
+                        printer.printNoLine(finalCommentLine)
+			printer.println(")")
+
+		else:
+			printer.println("(No comments)")
 	printer.setSize("M")
 	printer.println("Delivery Fee............ $5.00")
 	printer.println("______________________________")
@@ -64,17 +79,19 @@ def main(orderDictionary):
 	
 	#printer.setDefault() # Restore printer to defaults
 
-def breakIntoNewLine(currentLine,printer):
-	firstLine = ' '.join(currentLine.split()[:len(currentLine.split())-1])
-	arrayLength = len(currentLine.split())
-	wordsRemoved = 1
-	while(len(firstLine)>lineLength+5):
-		firstLine = ' '.join(firstLine.split()[:len(firstLine.split())-1])
-		wordsRemoved+=1
-	lastLine=' '.join(currentLine.split()[arrayLength-wordsRemoved:])
-	printer.println(firstLine)
-	if len(lastLine)>lineLength :
-		lastLine = breakIntoNewLine(lastLine,printer)
+def breakIntoLines(currentLine,printer):
+	lastLine = currentLine
+	if len(currentLine)>=lineLength:	
+		firstLine = ' '.join(currentLine.split()[:len(currentLine.split())-1])
+		arrayLength = len(currentLine.split())
+		wordsRemoved = 1
+		while(len(firstLine)>lineLength+5):
+			firstLine = ' '.join(firstLine.split()[:len(firstLine.split())-1])
+			wordsRemoved+=1
+		lastLine=' '.join(currentLine.split()[arrayLength-wordsRemoved:])
+		printer.println(firstLine)
+		if len(lastLine)>lineLength :
+			lastLine = breakIntoLines(lastLine,printer)
 	return lastLine
 
 def get_one_order(where=WHERE):
@@ -97,7 +114,8 @@ if __name__  == "__main__":
 			main(orderReturn)
 		else:
 			print("Sorry no orders")
-		time.sleep(30)
+			time.sleep(25)
+		time.sleep(5)
 #	order = {'number':101,'cost':25,'tax':1.02,'driver':5.00,'total':30,'items':[{'name':"Burger",'price':10.50,'comments':"No tomato",
 #		'addons':[{'name':"Cheddar Cheese",'price':4.0},{'name':"Bacon",'price':2.0}]},
 #                {'name':"Hotdog Surprise",'price':8.50,'comments':"No mustard",'addons':[]}]}
