@@ -91,14 +91,15 @@ def get_one_order(where=WHERE):
 
 if __name__  == "__main__":
 	import sys,time
-	while(False):
+	while(True):
 		orderReturn = get_one_order()
 		if orderReturn:
 			main(orderReturn)
 		else:
 			print("Sorry no orders")
 		time.sleep(30)
-	order = {'number':101,'cost':25,'tax':1.02,'driver':5.00,'total':30,'items':[{'name':"Burger",'price':10.50,'comments':"No tomato",
-		'addons':[{'name':"Cheddar Cheese",'price':4.0},{'name':"Bacon",'price':2.0}]},
-                {'name':"Hotdog Surprise",'price':8.50,'comments':"No mustard",'addons':[]}]}
-	main(order)
+#	order = {'number':101,'cost':25,'tax':1.02,'driver':5.00,'total':30,'items':[{'name':"Burger",'price':10.50,'comments':"No tomato",
+#		'addons':[{'name':"Cheddar Cheese",'price':4.0},{'name':"Bacon",'price':2.0}]},
+#                {'name':"Hotdog Surprise",'price':8.50,'comments':"No mustard",'addons':[]}]}
+#	main(order)
+#Above used for testing and formatting, a hardcoded order
