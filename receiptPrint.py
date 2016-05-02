@@ -4,7 +4,7 @@ from Adafruit_Thermal import *
 WHERE = "Teddy's"
 lineLength=24
 URL = "https://app.cranburydeliveries.com/retrieve/{}/"
-URL = "http://app.cranburydeliveries.com:8080/retrieve/{}/" # For testing
+#URL = "http://app.cranburydeliveries.com:8080/retrieve/{}/" # For testing
 from urllib2 import urlopen
 from urllib2 import HTTPError
 from json import loads
@@ -12,6 +12,7 @@ from json import loads
 def main(orderDictionary): #almost all of the following is just formatting
 	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
 	dict = orderDictionary
+	printer.feed(4)
 	printer.setLineHeightSmall()
 	printer.justify("C")
 	printer.boldOn()
@@ -20,39 +21,49 @@ def main(orderDictionary): #almost all of the following is just formatting
 	printer.setSize("M")
 	printer.printNoLine("Order ")
 	printer.println(dict['number'])
+	nameNum = dict['custname']+': '+dict['phone']
+	finalNameNum = breakIntoLines(nameNum,False,printer)
+	printer.println(finalNameNum)
+	finalAddress = breakIntoLines(dict['address'],False,printer)
+	printer.println(finalAddress)
 	printer.boldOff()
 	printer.justify("L")
 	printer.setSize("M")
 	for item in dict['items']:
 		printer.setSize("M")
-		printer.justify("L")
-		finalLine = breakIntoLines(item['name'],False,printer)
-		printer.printNoLine(finalLine)
-		for i in range(0,lineLength-len(finalLine)):
-                                printer.printNoLine(".")
-		printer.printNoLine(" $")
-		printer.println('{0:.2f}'.format(item['price']))
-		printer.setSize("S")
 		printer.setLineHeightSmall()
-		for addon in item['addons']:
+		finalLine = breakIntoLines(item['name'],False,printer) #prints out the food name
+		if item['price']!=0:
+			printer.printNoLine(finalLine)
+			for i in range(0,lineLength-len(finalLine)):
+                       		printer.printNoLine(".")
+			printer.printNoLine(" $")
+			printer.println('{0:.2f}'.format(round(item['price'],2)))
+		else:
+			printer.println(finalLine)
+		printer.setSize("S")
+		for addon in item['addons']: #Printing out the addons
 			finalAddonLine = breakIntoLines(addon['name'],True,printer)
                         printer.printNoLine("  "+finalAddonLine)
 			for i in range(0,lineLength-len(finalAddonLine)-2):
                        		printer.printNoLine(".")
 			printer.printNoLine(" $")
-			printer.println('{0:.2f}'.format(addon['price']))
-			printer.println()
+			printer.println('{0:.2f}'.format(round(addon['price'],2)))
+		#	printer.println()
 		
-		if item['comments']:
+		if item['comments']: #Prints out the comments, only if a comment exists
 			printer.printNoLine("  (")
                         finalCommentLine = breakIntoLines(item['comments'],True,printer)
                         printer.printNoLine(finalCommentLine)
 			printer.println(")")
-
-		else:
-			printer.println("  (No comments)")
+#		else:
+#			printer.println("(Comment text fill)")
 	printer.setSize("M")
-	printer.println("Delivery Fee............ $5.00")
+	printer.printNoLine("Sales Tax............... $")
+	printer.println(round(dict['tax'],2))
+	printer.setSize("M")
+	printer.setSize("M")
+	printer.println("Delivery Fee............ $5.00") #Hardcoded delivery fee, viewed as an item
 	printer.println("______________________________")
 	printer.println()
 	printer.println()
@@ -60,9 +71,9 @@ def main(orderDictionary): #almost all of the following is just formatting
 	for i in range(0,lineLength-len("Total")):
 		printer.printNoLine(".")
 	printer.printNoLine(" $")
-	printer.println('{0:.2f}'.format(dict['cost']+dict['driver']))
+	printer.println('{0:.2f}'.format(round(dict['total'],2)))
 	printer.setLineHeight(32)
-	printer.feed(8)
+	printer.feed(10)
 	
 	#printer.setDefault() # Restore printer to defaults
 
@@ -105,6 +116,7 @@ def get_one_order(where=WHERE): #Aaron's method to get the order dictionary obje
 
 if __name__  == "__main__":
 	import sys,time
+	time.sleep(10)
 	while(True):
 		orderReturn = get_one_order()
 		if orderReturn:
