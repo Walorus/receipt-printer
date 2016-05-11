@@ -2,6 +2,7 @@
 
 from Adafruit_Thermal import *
 WHERE = "Teddy's"
+URLNum = 1
 lineLength=24
 URL = "https://app.cranburydeliveries.com/retrieve/{}/"
 #URL = "http://app.cranburydeliveries.com:8080/retrieve/{}/" # For testing
@@ -21,11 +22,14 @@ def main(orderDictionary): #almost all of the following is just formatting
 	printer.setSize("M")
 	printer.printNoLine("Order ")
 	printer.println(dict['number'])
+	
 	nameNum = dict['custname']+': '+dict['phone']
-	finalNameNum = breakIntoLines(nameNum,False,printer)
+	finalNameNum = breakIntoLines(nameNum,False,printer) #prints out the name/Number
 	printer.println(finalNameNum)
-	finalAddress = breakIntoLines(dict['address'],False,printer)
+	
+	finalAddress = breakIntoLines(dict['address'],False,printer) #prints out the address
 	printer.println(finalAddress)
+	
 	printer.boldOff()
 	printer.justify("L")
 	printer.setSize("M")
@@ -33,50 +37,47 @@ def main(orderDictionary): #almost all of the following is just formatting
 		printer.setSize("M")
 		printer.setLineHeightSmall()
 		finalLine = breakIntoLines(item['name'],False,printer) #prints out the food name
-		if item['price']!=0:
+		if item['price']!=0: #If the price isn't $0.00 prints out the item name and then .....s and then the price
 			printer.printNoLine(finalLine)
 			for i in range(0,lineLength-len(finalLine)):
                        		printer.printNoLine(".")
 			printer.printNoLine(" $")
 			printer.println('{0:.2f}'.format(round(item['price'],2)))
 		else:
-			printer.println(finalLine)
+			printer.println(finalLine) #If price is $0.00, just prints out the item name
+			
 		printer.setSize("S")
 		for addon in item['addons']: #Printing out the addons
 			finalAddonLine = breakIntoLines(addon['name'],True,printer)
                         printer.printNoLine("  "+finalAddonLine)
-			for i in range(0,lineLength-len(finalAddonLine)-2):
+			for i in range(0,lineLength-len(finalAddonLine)-2): #prints out the ....s before the prie
                        		printer.printNoLine(".")
 			printer.printNoLine(" $")
 			printer.println('{0:.2f}'.format(round(addon['price'],2)))
-		#	printer.println()
-		
+
 		if item['comments']: #Prints out the comments, only if a comment exists
 			printer.printNoLine("  (")
                         finalCommentLine = breakIntoLines(item['comments'],True,printer)
                         printer.printNoLine(finalCommentLine)
 			printer.println(")")
-#		else:
-#			printer.println("(Comment text fill)")
+
 	printer.setSize("M")
 	printer.printNoLine("Sales Tax............... $")
-	printer.println(round(dict['tax'],2))
+	printer.println(round(dict['tax'],2)) #prints the sales tax, rounds it to two decimals
 	printer.setSize("M")
-	printer.setSize("M")
+	printer.setSize("M") #to add an extra blank line which all the previous items have
 	printer.println("Delivery Fee............ $5.00") #Hardcoded delivery fee, viewed as an item
 	printer.println("______________________________")
-	printer.println()
-	printer.println()
+	printer.feed(2)
 	printer.printNoLine("Total")
 	for i in range(0,lineLength-len("Total")):
 		printer.printNoLine(".")
 	printer.printNoLine(" $")
-	printer.println('{0:.2f}'.format(round(dict['total'],2)))
+	printer.println('{0:.2f}'.format(round(dict['total'],2))) #rounds the total to 2 decimals
 	printer.setLineHeight(32)
 	printer.feed(10)
 	
-	#printer.setDefault() # Restore printer to defaults
-
+	
 def breakIntoLines(currentLine,addSpaces,printer): #breaks lines greater than the lineLength set at top into properly sized lines
 	#If any words are > lineLength makes them less than lineLength
 	tempLineLength = lineLength
@@ -104,7 +105,7 @@ def breakIntoLines(currentLine,addSpaces,printer): #breaks lines greater than th
 
 def get_one_order(where=WHERE): #Aaron's method to get the order dictionary object, returns false if no objects available
     try:
-        fd = urlopen(URL.format(where))
+        fd = urlopen(URL.format(URLNum))
         text = fd.read().decode()
         obj = loads(text)
         return obj
@@ -115,18 +116,18 @@ def get_one_order(where=WHERE): #Aaron's method to get the order dictionary obje
             return False
 
 if __name__  == "__main__":
-	import sys,time
+	import sys,time,pygame
 	time.sleep(10)
+	pygame.mixer.init()
+	orderSound = pygame.mixer.Sound("/home/pi/git/ReceiptPrinter/sound.wav") #Plays the sound named 'sound.wav' in same printer folder
+	
 	while(True):
 		orderReturn = get_one_order()
 		if orderReturn:
 			main(orderReturn)
+			orderSound.play() #plays the sound when an order comes in
+			
 		else:
-			print("No open orders currently") #Only seen in console, exists to show that it is running
+			#print("No open orders currently") #Only seen in console, exists to show that it is running
 			time.sleep(25)
 		time.sleep(5)
-#	order = {'number':101,'cost':25,'tax':1.02,'driver':5.00,'total':30,'items':[{'name':"Burger",'price':10.50,'comments':"No tomato",
-#		'addons':[{'name':"Cheddar Cheese",'price':4.0},{'name':"Bacon",'price':2.0}]},
-#                {'name':"Hotdog Surprise",'price':8.50,'comments':"No mustard",'addons':[]}]}
-#	main(order)
-#Above used for testing and formatting, a hardcoded order
