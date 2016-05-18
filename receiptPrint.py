@@ -118,6 +118,7 @@ def get_one_order(where=WHERE): #Aaron's method to get the order dictionary obje
 if __name__  == "__main__":
 	import sys,time,pygame
 	time.sleep(10)
+	pygame.init()
 	pygame.mixer.init()
 	orderSound = pygame.mixer.Sound("/home/pi/git/ReceiptPrinter/sound.wav") #Plays the sound named 'sound.wav' in same printer folder
 	
